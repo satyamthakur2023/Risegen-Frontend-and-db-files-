@@ -1,131 +1,44 @@
 <?php
-/**
- * User Profile Update Script (FIXED: PHP Version Compatibility)
- * ----------------------------------------------------------------------
- * FIX: The dynamic parameter binding has been rewritten to resolve the 
- * "unexpected token &" parse error in older PHP versions.
- * * UPDATE: Implemented redirection to admin_dashboard.php upon successful update.
- * * ADJUSTMENT: Cleaned up HTML structure and removed conflicting CSS for better layout alignment.
- * ----------------------------------------------------------------------
- */
+session_start();
+require_once 'config.php';
 
-// =======================================================
-// 1. DATABASE CONNECTION CONFIGURATION (MUST BE EDITED!)
-// =======================================================
-$servername = "localhost";
-$db_username = "root";       // <-- CHANGE THIS to your MySQL user
-$db_password = "";           // <-- (Updated to user context)
-$database = "ai_mcqs";       // <-- (Updated to user context)
-
-// Simulate Admin User Name (for the navbar, required by user's HTML structure)
-$admin_name = "Admin User"; 
-
-$user_id_to_update = 1;      // !!! SIMULATED: Change this to a session variable in production!
-
-// Establish connection
-$conn = new mysqli($servername, $db_username, $db_password, $database);
-
-// Initial status variables
-$message = "";
-$db_error = false;
-
-// Check connection
-if ($conn->connect_error) {
-    $db_error = true;
-    $message = "<div class='alert alert-danger mt-3 text-center'>❌ Database Connection Failed: " . htmlspecialchars($conn->connect_error) . ". Please check your credentials.</div>";
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php"); exit();
 }
 
-// =======================================================
-// 2. FETCH EXISTING USER DATA (Initial GET Request)
-// =======================================================
-$user_data = [];
+$user_id = $_SESSION['user_id'];
+$pdo = connectDatabase();
 
-if (!$db_error) {
-    // Select specific columns for the profile to be updated
-    $stmt = $conn->prepare("SELECT id, username, email, role, status, bio FROM users WHERE id = ?");
-    $stmt->bind_param("i", $user_id_to_update);
-    $stmt->execute();
-    $result = $stmt->get_result();
+$stmt = $pdo->prepare("SELECT id, username, email, role, status, bio FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($result->num_rows === 1) {
-        $user_data = $result->fetch_assoc();
-    } else {
-        $message = "<div class='alert alert-danger mt-3 text-center border-0'>❌ User profile (ID {$user_id_to_update}) not found. Cannot proceed with update.</div>";
-        $db_error = true;
+$message = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $role     = $_POST['role'] ?? 'student';
+    $status   = $_POST['status'] ?? 'active';
+    $bio      = trim($_POST['bio'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    $fields = "username=:u, email=:e, role=:r, status=:s, bio=:b, updated_at=NOW()";
+    $params = [':u'=>$username,':e'=>$email,':r'=>$role,':s'=>$status,':b'=>$bio,':id'=>$user_id];
+
+    if (!empty($password)) {
+        $fields .= ', password_hash=:p';
+        $params[':p'] = password_hash($password, PASSWORD_DEFAULT);
     }
-    $stmt->close();
+
+    $pdo->prepare("UPDATE users SET $fields WHERE id=:id")->execute($params);
+    $_SESSION['username'] = $username;
+    $message = "<div class='bg-green-100 text-green-700 p-3 rounded mb-4'>✅ Profile updated successfully.</div>";
+    $user_data['username'] = $username;
+    $user_data['email'] = $email;
+    $user_data['bio'] = $bio;
 }
-
-// =======================================================
-// 3. HANDLE FORM SUBMISSION (POST Request - UPDATE)
-// =======================================================
-
-if (!$db_error && $_SERVER["REQUEST_METHOD"] === "POST") {
-    // Sanitize and trim user input from the submitted form
-    $username = trim($_POST["username"]);
-    $email = trim($_POST["email"]);
-    $password = $_POST["password"]; 
-    $role = $_POST["role"];
-    $status = $_POST["status"];
-    $bio = trim($_POST["bio"]);
-
-    if (empty($username) || empty($email)) {
-        $message = "<div class='alert alert-warning mt-3 text-center border-0' role='alert'>⚠️ Username and Email are required fields.</div>";
-    } else {
-        $sql_fields = "username = ?, email = ?, role = ?, status = ?, bio = ?, updated_at = NOW()";
-        $bind_types = "sssss"; 
-        $bind_params = [$username, $email, $role, $status, $bio];
-
-        // ------------------------------------
-        // A. Handle password update conditionally
-        // ------------------------------------
-        if (!empty($password)) {
-            $password_hash = password_hash($password, PASSWORD_BCRYPT);
-            $sql_fields .= ", password_hash = ?";
-            array_push($bind_params, $password_hash);
-            $bind_types .= "s"; 
-        }
-
-        // ------------------------------------
-        // B. Construct and execute the final UPDATE statement
-        // ------------------------------------
-        $sql = "UPDATE users SET {$sql_fields} WHERE id = ?";
-        $bind_types .= "i";
-        array_push($bind_params, $user_id_to_update);
-
-        $stmt = $conn->prepare($sql);
-        
-        // FIX for unexpected token "&" on older PHP versions
-        $ref_bind_params = [];
-        $ref_bind_params[] = $bind_types; 
-
-        foreach ($bind_params as &$param) {
-            $ref_bind_params[] = &$param;
-        }
-
-        call_user_func_array([$stmt, 'bind_param'], $ref_bind_params);
-        
-        if ($stmt->execute()) {
-            // REDIRECTION: Send admin back to the dashboard upon success
-            header("Location: admin_dashboard.php?status=success&user_id=" . $user_id_to_update);
-            exit; 
-        } else {
-            // Error handling for SQL execution (e.g., duplicate email)
-            $message = "<div class='alert alert-danger mt-3 text-center border-0' role='alert'>❌ Error updating profile: " . htmlspecialchars($stmt->error) . "</div>";
-        }
-        $stmt->close();
-    }
-}
-
-// Close the connection
-if (!$db_error && $conn) {
-    $conn->close();
-}
-
-// Helper function (still included but simplified as it's not used in the final view)
-function get_status_badge($status) {
-    return $status; 
-}
+?>
 ?>
 <!DOCTYPE html>
 <html lang="en">

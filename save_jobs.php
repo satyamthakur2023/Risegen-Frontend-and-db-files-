@@ -2,39 +2,33 @@
 session_start();
 require_once 'config.php'; // Make sure this contains connectDatabase()
 
-// Create connection
-$conn = new mysqli($host, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die(json_encode(["status" => "error", "message" => "Connection failed: " . $conn->connect_error]));
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(["status" => "error", "message" => "Unauthorized"]);
+    exit();
 }
 
-// Check if data is sent via POST
+$pdo = connectDatabase();
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    
-    // Sanitize and capture input
-    $title    = mysqli_real_escape_string($conn, $_POST['job_title']);
-    $company  = mysqli_real_escape_string($conn, $_POST['company_name']);
-    $location = mysqli_real_escape_string($conn, $_POST['location']);
-    $type     = mysqli_real_escape_string($conn, $_POST['job_type']);
-    $desc     = mysqli_real_escape_string($conn, $_POST['description']);
+    $user_id  = $_SESSION['user_id'];
+    $job_id   = intval($_POST['job_id'] ?? 0);
 
-    // Prepare SQL using placeholders
-    $stmt = $conn->prepare("INSERT INTO jobs (job_title, company_name, location, job_type, description) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssss", $title, $company, $location, $type, $desc);
-
-    // Execute and return JSON response
-    if ($stmt->execute()) {
-        echo json_encode(["status" => "success", "message" => "Job posted successfully!"]);
-    } else {
-        echo json_encode(["status" => "error", "message" => "Error: " . $stmt->error]);
+    if (!$job_id) {
+        echo json_encode(["status" => "error", "message" => "Invalid job ID."]);
+        exit();
     }
 
-    $stmt->close();
+    $check = $pdo->prepare("SELECT id FROM saved_jobs WHERE user_id = ? AND job_id = ?");
+    $check->execute([$user_id, $job_id]);
+
+    if ($check->fetch()) {
+        echo json_encode(["status" => "info", "message" => "Job already saved."]);
+    } else {
+        $stmt = $pdo->prepare("INSERT INTO saved_jobs (user_id, job_id, saved_at) VALUES (?, ?, NOW())");
+        $stmt->execute([$user_id, $job_id]);
+        echo json_encode(["status" => "success", "message" => "Job saved successfully!"]);
+    }
 } else {
     echo json_encode(["status" => "error", "message" => "Invalid request method."]);
 }
-
-$conn->close();
 ?>

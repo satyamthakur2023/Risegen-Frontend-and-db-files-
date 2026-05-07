@@ -65,22 +65,28 @@ $blogs_count = $pdo->query("SELECT COUNT(*) FROM blogs")->fetchColumn();
         <a href="dashboard.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg bg-indigo-100 text-indigo-700 font-medium">
           <i class="ph-fill ph-house-line"></i><span>Dashboard</span>
         </a>
-        <a href="courses.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
+        <a href="course.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
           <i class="ph-fill ph-book-open"></i><span>Courses</span>
         </a>
-        <a href="tests.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
-          <i class="ph-fill ph-list-checks"></i><span>Tests</span>
+        <a href="gamebox.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
+          <i class="ph-fill ph-list-checks"></i><span>Take Exam</span>
         </a>
-        <a href="jobs.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
+        <a href="https://risegen.onrender.com/" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
           <i class="ph-fill ph-briefcase"></i><span>Jobs</span>
         </a>
-        <a href="blog.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
+        <a href="blogs.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
           <i class="ph-fill ph-newspaper"></i><span>Blog</span>
         </a>
-        <a href="support.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
+        <a href="leaderboard.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
+          <i class="ph-fill ph-trophy"></i><span>Leaderboard</span>
+        </a>
+        <a href="search.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
+          <i class="ph-fill ph-magnifying-glass"></i><span>Search</span>
+        </a>
+        <a href="contact.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
           <i class="ph-fill ph-headset"></i><span>Support</span>
         </a>
-        <a href="user_profile.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
+        <a href="profile.php" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
           <i class="ph-fill ph-user"></i><span>My Profile</span>
         </a>
       </nav>
@@ -140,18 +146,18 @@ $blogs_count = $pdo->query("SELECT COUNT(*) FROM blogs")->fetchColumn();
         <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Access</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-          <a href="courses.php" class="bg-indigo-50 hover:bg-indigo-100 p-5 rounded-xl shadow flex items-center justify-between transition">
+          <a href="course.php" class="bg-indigo-50 hover:bg-indigo-100 p-5 rounded-xl shadow flex items-center justify-between transition">
             <span class="font-semibold text-indigo-700">Explore Courses</span>
             <i class="ph-fill ph-arrow-right text-indigo-500"></i>
           </a>
 
-          <a href="tests.php" class="bg-green-50 hover:bg-green-100 p-5 rounded-xl shadow flex items-center justify-between transition">
-            <span class="font-semibold text-green-700">Take a Test</span>
+          <a href="gamebox.php" class="bg-green-50 hover:bg-green-100 p-5 rounded-xl shadow flex items-center justify-between transition">
+            <span class="font-semibold text-green-700">Take Exam</span>
             <i class="ph-fill ph-arrow-right text-green-500"></i>
           </a>
 
-          <a href="jobs.php" class="bg-yellow-50 hover:bg-yellow-100 p-5 rounded-xl shadow flex items-center justify-between transition">
-            <span class="font-semibold text-yellow-700">Find Jobs</span>
+          <a href="leaderboard.php" class="bg-yellow-50 hover:bg-yellow-100 p-5 rounded-xl shadow flex items-center justify-between transition">
+            <span class="font-semibold text-yellow-700">Leaderboard</span>
             <i class="ph-fill ph-arrow-right text-yellow-500"></i>
           </a>
 

@@ -136,8 +136,10 @@ $chart_data = json_encode(array_column($login_data_chart, 'logins'));
         <div class="text-2xl font-extrabold text-primary">RiseGen<span class="text-white font-light">Admin</span></div>
         <nav class="hidden md:flex space-x-4 items-center">
             <a href="admin_dashboard.php" class="flex items-center px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium">Dashboard</a>
-            <a href="user_management.php" class="flex items-center px-3 py-2 rounded-lg text-gray-300 hover:bg-indigo-700 hover:text-white text-sm font-medium">User Management</a>
-            <a href="logout.php" class="bg-indigo-500 hover:bg-indigo-600 p-2 rounded-lg" title="Logout"><i data-lucide="log-out" class="w-5 h-5"></i></a>
+            <a href="user_management.php" class="flex items-center px-3 py-2 rounded-lg text-gray-300 hover:bg-indigo-700 hover:text-white text-sm font-medium">Users</a>
+            <a href="admin_blog_manager.php" class="flex items-center px-3 py-2 rounded-lg text-gray-300 hover:bg-indigo-700 hover:text-white text-sm font-medium">Blogs</a>
+            <a href="admin_course_manager.php" class="flex items-center px-3 py-2 rounded-lg text-gray-300 hover:bg-indigo-700 hover:text-white text-sm font-medium">Courses</a>
+            <a href="admin_logout.php" class="bg-indigo-500 hover:bg-indigo-600 p-2 rounded-lg" title="Logout"><i data-lucide="log-out" class="w-5 h-5"></i></a>
         </nav>
         <div class="md:hidden">
             <button id="mobile-menu-toggle" type="button" class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700"><i data-lucide="menu" class="h-6 w-6"></i></button>

@@ -77,7 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
     </form>
     <p class="text-center mt-4 text-sm text-gray-600">Don't have an account? 
-        <a href="User register.php" class="text-green-600">Register</a>
+        <a href="User_Registration.php" class="text-green-600">Register</a>
+    </p>
+    <p class="text-center mt-2 text-sm text-gray-600">
+        <a href="forgot_password.php" class="text-blue-500 hover:underline">Forgot Password?</a>
     </p>
 </div>
 </body>
