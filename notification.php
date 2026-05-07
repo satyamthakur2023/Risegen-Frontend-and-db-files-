@@ -7,41 +7,29 @@
 // 1. Configuration & Security
 // --------------------------------------------------------
 session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+require_once 'config.php';
+$pdo = connectDatabase();
 
-// Security Headers
-header("Cache-Control: no-cache, no-store, must-revalidate");
-header("Pragma: no-cache");
-header("Expires: 0");
-
-// --------------------------------------------------------
-// 2. Data Simulation/API Layer
-// --------------------------------------------------------
-
-/**
- * Simulates fetching logged-in user details.
- * In a real application, this should fetch actual user data.
- */
 function get_user_data(): array {
-    $session_username = $_SESSION['username'] ?? "RiseGen User";
-    $session_user_id = $_SESSION['user_id'] ?? "U948572";
-
     return [
-        'username' => htmlspecialchars($session_username),
-        'user_id' => htmlspecialchars($session_user_id),
+        'username' => htmlspecialchars($_SESSION['username'] ?? 'RiseGen User'),
+        'user_id'  => htmlspecialchars($_SESSION['user_id'] ?? ''),
     ];
 }
 
-/**
- * Simulates fetching last login security details.
- * In a real application, this would fetch from a dedicated login audit table.
- */
-function get_last_login_details(): array {
+function get_last_login_details($pdo, $user_id): array {
+    $stmt = $pdo->prepare("SELECT last_login_time, last_login_ip FROM users WHERE id = ? LIMIT 1");
+    $stmt->execute([$user_id]);
+    $row = $stmt->fetch();
     return [
-        // Mock data for the *previous* successful login
-        'timestamp' => '2025-10-09 23:45:12',
-        'ip_address' => '103.45.18.22',
-        'location' => 'New Delhi, India',
-        'device' => 'Windows 10 / Chrome',
+        'timestamp'  => $row['last_login_time'] ?? 'N/A',
+        'ip_address' => $row['last_login_ip'] ?? 'N/A',
+        'location'   => 'N/A',
+        'device'     => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown',
     ];
 }
 
@@ -63,12 +51,11 @@ function get_initials(string $name): string {
 // --------------------------------------------------------
 
 $app_version = "6.1.0";
-$user_data = get_user_data();
-$last_login = get_last_login_details();
-
-$username = $user_data['username'];
-$user_id = $user_data['user_id'];
-$initials = get_initials($username);
+$user_data   = get_user_data();
+$last_login  = get_last_login_details($pdo, $_SESSION['user_id']);
+$username    = $user_data['username'];
+$user_id     = $user_data['user_id'];
+$initials    = get_initials($username);
 
 $page_title = "Security Check";
 

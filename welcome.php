@@ -176,17 +176,28 @@ foreach ($rows as $r) {
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <div class="card glass p-6 rounded-3xl text-center">
             <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Courses Enrolled</p>
-            <p class="text-4xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-2">12</p>
+            <p class="text-4xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-2"><?php
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM enrollments WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            echo $stmt->fetchColumn();
+          ?></p>
             <p class="text-xs text-green-500 font-semibold mt-1">▲ 12% growth</p>
           </div>
           <div class="card glass p-6 rounded-3xl text-center">
             <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Blogs Read</p>
-            <p class="text-4xl font-extrabold text-green-500 dark:text-green-400 mt-2">48</p>
+            <p class="text-4xl font-extrabold text-green-500 dark:text-green-400 mt-2"><?php
+            $stmt = $pdo->query("SELECT COUNT(*) FROM blogs");
+            echo $stmt->fetchColumn();
+          ?></p>
             <p class="text-xs text-green-500 font-semibold mt-1">▲ 8% growth</p>
           </div>
           <div class="card glass p-6 rounded-3xl text-center">
             <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Skills Mastered</p>
-            <p class="text-4xl font-extrabold text-yellow-500 dark:text-yellow-400 mt-2">9</p>
+            <p class="text-4xl font-extrabold text-yellow-500 dark:text-yellow-400 mt-2"><?php
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM test_results WHERE username = (SELECT username FROM users WHERE id = ?)");
+            $stmt->execute([$user_id]);
+            echo $stmt->fetchColumn();
+          ?></p>
             <p class="text-xs text-red-500 font-semibold mt-1">▼ 2% dip</p>
           </div>
           <div class="card glass p-6 rounded-3xl text-center">

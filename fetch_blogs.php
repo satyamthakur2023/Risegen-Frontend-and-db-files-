@@ -1,13 +1,7 @@
 <?php
 header("Content-Type: application/json");
 
-$db_host = 'sql107.byethost7.com';
-$db_user = 'b7_40130868';
-$db_pass = '1cbjvqfy';
-$db_name = 'b7_40130868_risegen';
-
-$conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
-
+require_once __DIR__ . '/config.php';
 if ($conn->connect_error) {
     die(json_encode(["error" => "Link to Central Intelligence Server Lost"]));
 }
