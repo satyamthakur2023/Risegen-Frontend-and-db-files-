@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RiseGen | Knowledge Match</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;900&display=swap');
+        body { font-family: 'Outfit', sans-serif; background: #050505; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .drag-item { 
+            cursor: grab; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+        .drag-item:active { cursor: grabbing; }
+        .dragging { 
+            opacity: 0.2; 
+            transform: scale(0.95); 
+            background: #3b82f6 !important;
+        }
+
+        .drop-zone { min-height: 300px; }
+
+        /* Smooth animation for reordering */
+        .drag-item-move { transition: transform 0.3s; }
+    </style>
+</head>
+<body class="text-white min-h-screen flex items-center justify-center p-6 overflow-hidden">
+
+    <div id="confetti" class="fixed inset-0 pointer-events-none z-50"></div>
+
+    <div class="max-w-xl w-full glass-card rounded-[2.5rem] p-10 shadow-2xl relative">
+        <div class="absolute -top-20 -right-20 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl"></div>
+        
+        <header class="mb-10 text-center relative">
+            <div class="inline-block px-4 py-1 border border-blue-500/30 rounded-full text-[10px] font-bold tracking-[0.2em] text-blue-500 mb-4 uppercase">
+                Logic Assessment
+            </div>
+            <h1 class="text-4xl font-black tracking-tight mb-2">Knowledge Match</h1>
+            <p id="question-text" class="text-slate-400 text-lg leading-relaxed px-4">Initialising infrastructure challenge...</p>
+        </header>
+
+        <div id="drag-container" class="drop-zone space-y-3">
+            </div>
+
+        <div class="mt-12 flex flex-col gap-6">
+            <button onclick="verifyOrder()" class="group w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 rounded-2xl transition-all shadow-xl shadow-blue-900/20 flex items-center justify-center gap-3">
+                <span>VERIFY SEQUENCE</span>
+                <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </button>
+            <div id="feedback" class="text-center font-bold text-sm tracking-widest uppercase h-6"></div>
+        </div>
+
+        <div class="mt-8 pt-8 border-t border-white/5 flex justify-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-blue-600"></div>
+            <div class="w-2 h-2 rounded-full bg-white/10"></div>
+            <div class="w-2 h-2 rounded-full bg-white/10"></div>
+        </div>
+    </div>
+
+    <script>
+        let correctOrder = [];
+
+        async function fetchGameQuestion() {
+            const qText = document.getElementById('question-text');
+            try {
+                // Ensure your api.php handles this or fallback to general limit
+                const res = await fetch('api.php?type=drag_drop&limit=1');
+                const data = await res.json();
+                
+                if(!data || data.length === 0) {
+                    qText.innerText = "No sequence data found in Node-RiseGen.";
+                    return;
+                }
+
+                const q = data[0]; 
+                qText.innerText = q.question_text;
+                
+                // Safe JSON Parsing
+                correctOrder = typeof q.correct_answer === 'string' ? JSON.parse(q.correct_answer) : q.correct_answer;
+                const initialOptions = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+                
+                // Shuffle options so it's a real game
+                const shuffledOptions = [...initialOptions].sort(() => Math.random() - 0.5);
+                renderItems(shuffledOptions);
+
+            } catch (err) {
+                console.error(err);
+                qText.innerText = "Connection lost. Checking server protocols...";
+            }
+        }
+
+        function renderItems(items) {
+            const container = document.getElementById('drag-container');
+            container.innerHTML = '';
+
+            items.forEach((item) => {
+                const div = document.createElement('div');
+                div.className = "drag-item p-5 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between group hover:border-blue-500/50 hover:bg-white/10";
+                div.draggable = true;
+                div.innerHTML = `
+                    <span class="font-semibold text-lg tracking-wide">${item}</span>
+                    <div class="text-slate-600 group-hover:text-blue-500 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path></svg>
+                    </div>
+                `;
+                
+                div.addEventListener('dragstart', () => div.classList.add('dragging'));
+                div.addEventListener('dragend', () => div.classList.remove('dragging'));
+                
+                container.appendChild(div);
+            });
+
+            setupDragLogic(container);
+        }
+
+        function setupDragLogic(container) {
+            container.addEventListener('dragover', e => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(container, e.clientY);
+                const dragging = document.querySelector('.dragging');
+                if (afterElement == null) {
+                    container.appendChild(dragging);
+                } else {
+                    container.insertBefore(dragging, afterElement);
+                }
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.drag-item:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function verifyOrder() {
+            const currentItems = [...document.querySelectorAll('.drag-item span')].map(s => s.innerText);
+            const feedback = document.getElementById('feedback');
+
+            const isCorrect = JSON.stringify(currentItems) === JSON.stringify(correctOrder);
+
+            if (isCorrect) {
+                feedback.innerText = "Protocol Validated";
+                feedback.className = "text-center font-bold text-blue-500 animate__animated animate__pulse";
+                
+                // Final Success Feedback
+                setTimeout(() => {
+                    alert("Logic Sequence Perfected. Returning to Portal.");
+                    window.location.href = 'index.html';
+                }, 1500);
+            } else {
+                feedback.innerText = "Invalid Sequence Detected";
+                feedback.className = "text-center font-bold text-red-600 animate__animated animate__shakeX";
+                
+                setTimeout(() => {
+                    feedback.innerText = "";
+                }, 2000);
+            }
+        }
+
+        window.onload = fetchGameQuestion;
+    </script>
+</body>
+</html>
