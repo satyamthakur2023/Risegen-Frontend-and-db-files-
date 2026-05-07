@@ -5,16 +5,10 @@ header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
-// 2. Database Credentials
-$db_host = 'sql107.byethost7.com';    
-$db_user = 'b7_40130868';             
-$db_pass = '1cbjvqfy';    
-$db_name = 'b7_40130868_risegen';    
-
-$conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
-
+// 2. Load config
+require_once __DIR__ . '/config.php';
 if ($conn->connect_error) {
-    echo json_encode(["error" => "Connection failed", "details" => $conn->connect_error]);
+    echo json_encode(["error" => "Connection failed"]);
     exit();
 }
 
@@ -28,41 +22,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (!in_array($limit, $allowed_limits)) { $limit = 20; }
 
     // STEP A: Get IDs of questions already seen by this user
-    $exclude_query = "SELECT question_id FROM user_exams WHERE username = '$username'";
-    $exclude_res = $conn->query($exclude_query);
-    
-    $seen_ids = [];
-    if ($exclude_res) {
-        while($row = $exclude_res->fetch_assoc()) {
-            $seen_ids[] = $row['question_id'];
-        }
-    }
+    // STEP A: Get seen question IDs using prepared statement
+    $stmt = $conn->prepare("SELECT question_id FROM user_exams WHERE username = ?");
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    $seen_ids = array_column($stmt->get_result()->fetch_all(MYSQLI_ASSOC), 'question_id');
+    $stmt->close();
 
-    // STEP B: Build Exclusion Clause
-    $exclude_clause = "";
+    // STEP B: Fetch unseen questions
     if (!empty($seen_ids)) {
-        $exclude_clause = "WHERE id NOT IN (" . implode(',', $seen_ids) . ")";
+        $placeholders = implode(',', array_fill(0, count($seen_ids), '?'));
+        $types = str_repeat('i', count($seen_ids));
+        $stmt = $conn->prepare("SELECT * FROM questions WHERE id NOT IN ($placeholders) ORDER BY RAND() LIMIT ?");
+        $params = array_merge($seen_ids, [$limit]);
+        $types .= 'i';
+        $stmt->bind_param($types, ...$params);
+    } else {
+        $stmt = $conn->prepare("SELECT * FROM questions ORDER BY RAND() LIMIT ?");
+        $stmt->bind_param('i', $limit);
+    }
+    $stmt->execute();
+    $questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    // STEP C: Pool reset if exhausted
+    if (empty($questions) && !empty($seen_ids)) {
+        $stmt = $conn->prepare("DELETE FROM user_exams WHERE username = ?");
+        $stmt->bind_param('s', $username);
+        $stmt->execute();
+        $stmt->close();
+        $stmt = $conn->prepare("SELECT * FROM questions ORDER BY RAND() LIMIT ?");
+        $stmt->bind_param('i', $limit);
+        $stmt->execute();
+        $questions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
     }
 
-    // STEP C: Fetch New Random Questions
-    $query = "SELECT * FROM questions $exclude_clause ORDER BY RAND() LIMIT $limit";
-    $res = $conn->query($query);
-
-    // STEP D: Pool Exhaustion Reset
-    // If no new questions are left, delete history for this user and restart
-    if ($res->num_rows == 0 && !empty($seen_ids)) {
-        $conn->query("DELETE FROM user_exams WHERE username = '$username'");
-        $query = "SELECT * FROM questions ORDER BY RAND() LIMIT $limit";
-        $res = $conn->query($query);
-    }
-
-    $questions = $res->fetch_all(MYSQLI_ASSOC);
-
-    // STEP E: Log current question IDs so they don't repeat next time
+    // STEP D: Log seen questions
+    $log = $conn->prepare("INSERT INTO user_exams (username, question_id) VALUES (?, ?)");
     foreach ($questions as $q) {
-        $q_id = $q['id'];
-        $conn->query("INSERT INTO user_exams (username, question_id) VALUES ('$username', $q_id)");
+        $log->bind_param('si', $username, $q['id']);
+        $log->execute();
     }
+    $log->close();
 
     echo json_encode($questions);
     exit(); 
@@ -77,25 +79,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
-    $name = $conn->real_escape_string($data['username']);
+    $name  = $data['username'];
     $score = intval($data['score']);
-    $status = ($score >= 70) ? 'Passed' : 'Failed';
-    
+    $status  = ($score >= 70) ? 'Passed' : 'Failed';
     $cert_id = ($status === 'Passed') ? 'CERT-' . strtoupper(uniqid()) : null;
-    $cert_val = ($cert_id) ? "'$cert_id'" : "NULL";
 
-    $sql = "INSERT INTO test_results (username, score, status, cert_id) 
-            VALUES ('$name', $score, '$status', $cert_val)";
-    
-    if ($conn->query($sql)) {
-        echo json_encode([
-            "status" => $status, 
-            "cert_id" => $cert_id,
-            "message" => "Result recorded successfully"
-        ]);
+    $stmt = $conn->prepare("INSERT INTO test_results (username, score, status, cert_id) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param('siss', $name, $score, $status, $cert_id);
+    if ($stmt->execute()) {
+        echo json_encode(["status" => $status, "cert_id" => $cert_id, "message" => "Result recorded successfully"]);
     } else {
-        echo json_encode(["error" => "Database save failed: " . $conn->error]);
+        echo json_encode(["error" => "Database save failed"]);
     }
+    $stmt->close();
     exit();
 }
 ?>

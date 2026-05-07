@@ -9,18 +9,10 @@ if (isset($_SESSION['user_id'])) {
     exit();
 }
 
-// CSRF token generation
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
 $pdo = connectDatabase();
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
-        $error = "Invalid request. Please try again.";
-    } else {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -32,11 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password_hash'])) {
-            session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
 
+            // Update login activity
             $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
             $pdo->prepare("UPDATE users SET last_login_ip=?, last_login_time=NOW(), last_activity=NOW() WHERE id=?")
                 ->execute([$ip, $user['id']]);
@@ -65,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="bg-red-100 text-red-700 p-3 rounded mb-4"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
 
-        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+    <form method="POST" action="">
         <div class="mb-4">
             <label class="block text-gray-700">Email</label>
             <input type="email" name="email" class="w-full border rounded p-2" required>

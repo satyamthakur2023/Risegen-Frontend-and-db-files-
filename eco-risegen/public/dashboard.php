@@ -1,33 +1,18 @@
 <?php
 session_start();
+
+// 🔒 Prevent back access after logout
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
+// ✅ Redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-require_once 'config.php';
-$pdo = connectDatabase();
-$user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'] ?? 'User';
-
-// Real DB counts
-$enrolled_count = $pdo->prepare("SELECT COUNT(*) FROM enrollments WHERE user_id = ?");
-$enrolled_count->execute([$user_id]);
-$courses = $enrolled_count->fetchColumn();
-
-$tests_count = $pdo->prepare("SELECT COUNT(*) FROM test_results WHERE username = (SELECT username FROM users WHERE id = ?)");
-$tests_count->execute([$user_id]);
-$tests = $tests_count->fetchColumn();
-
-$jobs_count = $pdo->prepare("SELECT COUNT(*) FROM saved_jobs WHERE user_id = ?");
-$jobs_count->execute([$user_id]);
-$jobs = $jobs_count->fetchColumn();
-
-$blogs_count = $pdo->query("SELECT COUNT(*) FROM blogs")->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -99,7 +84,7 @@ $blogs_count = $pdo->query("SELECT COUNT(*) FROM blogs")->fetchColumn();
             <h3 class="text-lg font-semibold text-gray-700">Courses</h3>
             <i class="ph-fill ph-book-open text-indigo-500 text-2xl"></i>
           </div>
-          <p class="text-3xl font-bold text-gray-900"><?php echo $courses; ?></p>
+          <p class="text-3xl font-bold text-gray-900">12</p>
           <p class="text-sm text-gray-500 mt-1">Active courses</p>
         </div>
 
@@ -109,7 +94,7 @@ $blogs_count = $pdo->query("SELECT COUNT(*) FROM blogs")->fetchColumn();
             <h3 class="text-lg font-semibold text-gray-700">Tests</h3>
             <i class="ph-fill ph-list-checks text-green-500 text-2xl"></i>
           </div>
-          <p class="text-3xl font-bold text-gray-900"><?php echo $tests; ?></p>
+          <p class="text-3xl font-bold text-gray-900">5</p>
           <p class="text-sm text-gray-500 mt-1">Completed tests</p>
         </div>
 
@@ -119,7 +104,7 @@ $blogs_count = $pdo->query("SELECT COUNT(*) FROM blogs")->fetchColumn();
             <h3 class="text-lg font-semibold text-gray-700">Jobs</h3>
             <i class="ph-fill ph-briefcase text-yellow-500 text-2xl"></i>
           </div>
-          <p class="text-3xl font-bold text-gray-900"><?php echo $jobs; ?></p>
+          <p class="text-3xl font-bold text-gray-900">3</p>
           <p class="text-sm text-gray-500 mt-1">Active applications</p>
         </div>
 
@@ -129,7 +114,7 @@ $blogs_count = $pdo->query("SELECT COUNT(*) FROM blogs")->fetchColumn();
             <h3 class="text-lg font-semibold text-gray-700">Blogs</h3>
             <i class="ph-fill ph-newspaper text-red-500 text-2xl"></i>
           </div>
-          <p class="text-3xl font-bold text-gray-900"><?php echo $blogs_count; ?></p>
+          <p class="text-3xl font-bold text-gray-900">7</p>
           <p class="text-sm text-gray-500 mt-1">Published blogs</p>
         </div>
 

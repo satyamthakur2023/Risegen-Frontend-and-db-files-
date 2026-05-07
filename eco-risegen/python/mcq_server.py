@@ -5,23 +5,14 @@ import nltk
 import random
 import re
 import math
-import os
-import mysql.connector
 from collections import Counter
+from db_connection import MCQDatabase
 
 app = Flask(__name__)
 CORS(app)
 
-# ── MySQL Connection ──────────────────────────────────────────────────────────
-def get_db():
-    return mysql.connector.connect(
-        host=os.getenv('DB_HOST', 'sql107.byethost7.com'),
-        user=os.getenv('DB_USER', 'b7_40130868'),
-        password=os.getenv('DB_PASS', '1cbjvqfy'),
-        database=os.getenv('DB_NAME', 'b7_40130868_risegen')
-    )
-
-pdf_texts = {}  # in-memory cache for current session only
+db = MCQDatabase()
+pdf_texts = {}
 
 try:
     nltk.download('punkt', quiet=True)
@@ -357,32 +348,26 @@ def upload_pdf():
         if text.startswith('Error'):
             return jsonify({'error': text}), 400
 
-        # Save to MySQL
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute("INSERT INTO pdf_uploads (user_id, filename, file_path) VALUES (%s, %s, %s)",
-                       (1, pdf_file.filename, f"uploads/{pdf_file.filename}"))
-        pdf_id = cursor.lastrowid
-        db.commit()
+        pdf_id = db.insert_pdf_upload(1, pdf_file.filename, f"uploads/{pdf_file.filename}")
+        pdf_texts[pdf_id] = text
 
         topics = mcq_generator.detect_topics(text)
-        for t in topics:
-            cursor.execute("INSERT INTO topics (pdf_id, name, relevance_score) VALUES (%s, %s, %s)",
-                           (pdf_id, t['name'], t['score']))
-        db.commit()
-        cursor.close()
-        db.close()
+        db.insert_topics(pdf_id, topics)
 
-        pdf_texts[pdf_id] = text
         summary = mcq_generator.summarize(text, num_sentences=6)
         key_terms = mcq_generator.extract_key_terms(text, top_n=10)
         word_count = len(text.split())
+        reading_time = max(1, round(word_count / 200))
 
         return jsonify({
-            'success': True, 'pdf_id': pdf_id,
+            'success': True,
+            'pdf_id': pdf_id,
+            'text_length': len(text),
             'word_count': word_count,
-            'reading_time': max(1, round(word_count / 200)),
-            'topics': topics, 'summary': summary, 'key_terms': key_terms
+            'reading_time': reading_time,
+            'topics': topics,
+            'summary': summary,
+            'key_terms': key_terms
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -403,18 +388,9 @@ def generate_questions():
 
         questions = mcq_generator.generate_questions(text, selected_topics, difficulty, count)
 
-        # Persist questions to MySQL
-        db = get_db()
-        cursor = db.cursor()
-        import json as _json
-        for i, q in enumerate(questions):
-            cursor.execute(
-                "INSERT INTO questions (pdf_id, topic_id, question_text, options, correct_answer, question_type, difficulty) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                (pdf_id, i + 1, q['question'], _json.dumps(q['options']), q['options'][q['correct']], q['type'], q['difficulty'])
-            )
-        db.commit()
-        cursor.close()
-        db.close()
+        for i, question in enumerate(questions):
+            topic_id = i % max(len(selected_topics), 1) + 1
+            db.insert_questions(pdf_id, topic_id, [question])
 
         return jsonify({'success': True, 'questions': questions, 'count': len(questions)})
     except Exception as e:
@@ -425,16 +401,7 @@ def generate_questions():
 def create_session():
     try:
         data = request.json
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO test_sessions (user_id, pdf_id, total_questions) VALUES (%s, %s, %s)",
-            (data.get('user_id', 1), data.get('pdf_id'), data.get('total_questions'))
-        )
-        session_id = cursor.lastrowid
-        db.commit()
-        cursor.close()
-        db.close()
+        session_id = db.create_test_session(data.get('user_id', 1), data.get('pdf_id'), data.get('total_questions'))
         return jsonify({'success': True, 'session_id': session_id})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -444,19 +411,9 @@ def create_session():
 def submit_answer():
     try:
         data = request.json
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO user_answers (session_id, question_id, user_answer, is_correct) VALUES (%s, %s, %s, %s)",
-            (data.get('session_id'), data.get('question_id'), data.get('user_answer'), data.get('is_correct'))
-        )
-        db.commit()
-        cursor.execute("SELECT COUNT(*) as total, SUM(is_correct) as correct FROM user_answers WHERE session_id = %s",
-                       (data.get('session_id'),))
-        score = cursor.fetchone()
-        cursor.close()
-        db.close()
-        return jsonify({'success': True, 'score': {'total': score[0], 'correct': score[1] or 0}})
+        db.save_answer(data.get('session_id'), data.get('question_id'), data.get('user_answer'), data.get('is_correct'))
+        score = db.get_live_score(data.get('session_id'))
+        return jsonify({'success': True, 'score': score})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -464,14 +421,7 @@ def submit_answer():
 @app.route('/api/score/<int:session_id>')
 def get_score(session_id):
     try:
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute("SELECT COUNT(*) as total, SUM(is_correct) as correct FROM user_answers WHERE session_id = %s",
-                       (session_id,))
-        score = cursor.fetchone()
-        cursor.close()
-        db.close()
-        return jsonify({'total': score[0], 'correct': score[1] or 0})
+        return jsonify(db.get_live_score(session_id))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

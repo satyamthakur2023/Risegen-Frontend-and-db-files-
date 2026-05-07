@@ -8,10 +8,10 @@ session_start();
 require_once 'config.php';
 
 // Check if user is logged in and is an admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: admin_login.php");
-    exit;
-}
+// if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+//     header("Location: login.php");
+//     exit;
+// }
 
 // 2. Optimization: Single Database Connection Logic
 $conn = $conn ?? null;

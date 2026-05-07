@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCQ Generator</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; }
+        .container { max-width: 900px; margin: 40px auto; padding: 20px; }
+        h1 { text-align: center; margin-bottom: 30px; color: #2c3e50; }
+
+        .card { background: #fff; border-radius: 10px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { margin-bottom: 15px; color: #2c3e50; font-size: 1.2rem; }
+
+        .upload-area { border: 2px dashed #3498db; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: background 0.2s; }
+        .upload-area:hover { background: #eaf4fb; }
+        .upload-area input { display: none; }
+        .upload-area p { color: #666; margin-top: 10px; }
+
+        .btn { padding: 10px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; }
+        .btn-primary { background: #3498db; color: #fff; }
+        .btn-primary:hover { background: #2980b9; }
+        .btn-success { background: #2ecc71; color: #fff; }
+        .btn-success:hover { background: #27ae60; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .hidden { display: none; }
+
+        #summary-box { background: #f9f9f9; border-left: 4px solid #3498db; padding: 15px; border-radius: 4px; line-height: 1.7; white-space: pre-wrap; }
+
+        .topics { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
+        .topic-tag { padding: 6px 14px; border-radius: 20px; background: #eaf4fb; border: 2px solid #3498db; cursor: pointer; font-size: 0.9rem; }
+        .topic-tag.selected { background: #3498db; color: #fff; }
+
+        .controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin: 15px 0; }
+        select, input[type=number] { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+
+        .question-card { background: #f9f9f9; border-radius: 8px; padding: 20px; margin-bottom: 15px; }
+        .question-card p { font-weight: bold; margin-bottom: 12px; word-break: break-word; white-space: pre-wrap; }
+        .question-context { font-weight: normal !important; font-style: italic; color: #555; font-size: 0.9rem; background: #eef; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: block; max-height: 80px; overflow-y: auto; }
+        .option { display: block; padding: 8px 14px; margin: 6px 0; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; background: #fff; transition: background 0.2s; }
+        .option:hover { background: #eaf4fb; }
+        .option.correct { background: #d5f5e3; border-color: #2ecc71; }
+        .option.wrong { background: #fde8e8; border-color: #e74c3c; }
+
+        .score-bar { background: #eee; border-radius: 10px; height: 12px; margin-top: 10px; }
+        .score-fill { background: #2ecc71; height: 12px; border-radius: 10px; transition: width 0.4s; }
+
+        #status { margin-top: 10px; color: #e74c3c; font-size: 0.9rem; }
+        #score-display { font-size: 1.1rem; font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📄 MCQ Generator</h1>
+
+    <!-- Step 1: Upload PDF -->
+    <div class="card" id="step-upload">
+        <h2>Step 1: Upload PDF</h2>
+        <div class="upload-area" onclick="document.getElementById('pdf-input').click()">
+            <input type="file" id="pdf-input" accept=".pdf" onchange="handleFileSelect(event)">
+            <div style="font-size:3rem">📁</div>
+            <p id="file-label">Click to select a PDF file</p>
+        </div>
+        <div style="margin-top:15px; text-align:right">
+            <button class="btn btn-primary" id="upload-btn" onclick="uploadPDF()" disabled>Upload & Analyze</button>
+        </div>
+        <p id="status"></p>
+    </div>
+
+    <!-- Step 2: Summary & Topics -->
+    <div class="card hidden" id="step-summary">
+        <h2>Step 2: PDF Summary & Topics</h2>
+        <p style="margin-bottom:10px; color:#555;">Detected Topics:</p>
+        <div class="topics" id="topics-container"></div>
+        <p style="margin:15px 0 8px; color:#555;">Text Summary:</p>
+        <div id="summary-box"></div>
+    </div>
+
+    <!-- Step 3: Generate MCQs -->
+    <div class="card hidden" id="step-generate">
+        <h2>Step 3: Generate MCQ Questions</h2>
+        <div class="controls">
+            <label>Difficulty:
+                <select id="difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </label>
+            <label>Number of Questions:
+                <input type="number" id="q-count" value="10" min="1" max="30">
+            </label>
+            <button class="btn btn-success" onclick="generateMCQ()">Generate Questions</button>
+        </div>
+    </div>
+
+    <!-- Step 4: Quiz -->
+    <div class="card hidden" id="step-quiz">
+        <h2>Step 4: Answer Questions</h2>
+        <div id="score-display"></div>
+        <div class="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
+        <div id="questions-container" style="margin-top:20px"></div>
+    </div>
+</div>
+
+<script>
+    let pdfId = null;
+    let selectedTopics = [];
+    let questions = [];
+    let score = 0;
+    let answered = 0;
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            document.getElementById('file-label').textContent = `Selected: ${file.name}`;
+            document.getElementById('upload-btn').disabled = false;
+            document.getElementById('status').textContent = '';
+        }
+    }
+
+    async function uploadPDF() {
+        const fileInput = document.getElementById('pdf-input');
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const status = document.getElementById('status');
+        status.textContent = 'Uploading...';
+        document.getElementById('upload-btn').disabled = true;
+
+        const formData = new FormData();
+        formData.append('pdf', file);
+
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            if (data.error) { status.textContent = 'Error: ' + data.error; return; }
+
+            pdfId = data.pdf_id;
+            status.textContent = '';
+            showSummary(data);
+        } catch (e) {
+            status.textContent = 'Upload failed: ' + e.message;
+        }
+    }
+
+    function showSummary(data) {
+        document.getElementById('step-summary').classList.remove('hidden');
+        document.getElementById('step-generate').classList.remove('hidden');
+
+        // Show topics
+        const container = document.getElementById('topics-container');
+        container.innerHTML = '';
+        data.topics.forEach(t => {
+            const tag = document.createElement('div');
+            tag.className = 'topic-tag';
+            tag.textContent = `${t.name} (${t.score})`;
+            tag.onclick = () => toggleTopic(t.name, tag);
+            container.appendChild(tag);
+        });
+
+        // Show summary (first 500 chars of detected topics info)
+        const summary = data.topics.map(t => `• ${t.name}: relevance score ${t.score}`).join('\n');
+        document.getElementById('summary-box').textContent =
+            `PDF analyzed successfully.\nText length: ${data.text_length} characters.\n\nDetected Topics:\n${summary}`;
+    }
+
+    function toggleTopic(name, el) {
+        if (selectedTopics.includes(name)) {
+            selectedTopics = selectedTopics.filter(t => t !== name);
+            el.classList.remove('selected');
+        } else {
+            selectedTopics.push(name);
+            el.classList.add('selected');
+        }
+    }
+
+    async function generateMCQ() {
+        const difficulty = document.getElementById('difficulty').value;
+        const count = parseInt(document.getElementById('q-count').value);
+        const topics = selectedTopics.length > 0 ? selectedTopics : ['General'];
+
+        try {
+            const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pdf_id: pdfId, topics, difficulty, count })
+            });
+            const data = await res.json();
+            if (data.error) { alert('Error: ' + data.error); return; }
+
+            questions = data.questions;
+            score = 0;
+            answered = 0;
+            renderQuiz();
+        } catch (e) {
+            alert('Failed to generate: ' + e.message);
+        }
+    }
+
+    function renderQuiz() {
+        document.getElementById('step-quiz').classList.remove('hidden');
+        document.getElementById('score-display').textContent = `Score: 0 / ${questions.length}`;
+        document.getElementById('score-fill').style.width = '0%';
+
+        const container = document.getElementById('questions-container');
+        container.innerHTML = '';
+
+        questions.forEach((q, qi) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            // Split question from context
+            const parts = q.question.split('\n\nContext:');
+            const questionText = parts[0];
+            const contextText = parts[1] ? parts[1].trim() : null;
+            card.innerHTML = `<p>Q${qi + 1}. ${questionText}</p>${contextText ? `<span class="question-context">Context: ${contextText}</span>` : ''}`;
+
+            q.options.forEach((opt, oi) => {
+                const btn = document.createElement('button');
+                btn.className = 'option';
+                btn.textContent = `${String.fromCharCode(65 + oi)}. ${opt}`;
+                btn.onclick = () => checkAnswer(btn, qi, oi, card);
+                card.appendChild(btn);
+            });
+
+            container.appendChild(card);
+        });
+
+        document.getElementById('step-quiz').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function checkAnswer(btn, qi, oi, card) {
+        const q = questions[qi];
+        const buttons = card.querySelectorAll('.option');
+        buttons.forEach(b => b.disabled = true);
+
+        if (oi === q.correct) {
+            btn.classList.add('correct');
+            score++;
+        } else {
+            btn.classList.add('wrong');
+            buttons[q.correct].classList.add('correct');
+        }
+
+        answered++;
+        document.getElementById('score-display').textContent = `Score: ${score} / ${questions.length}`;
+        document.getElementById('score-fill').style.width = `${(score / questions.length) * 100}%`;
+    }
+</script>
+</body>
+</html>

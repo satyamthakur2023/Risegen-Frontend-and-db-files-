@@ -8,20 +8,11 @@
 // and PDO (via connectDatabase() function) to maintain compatibility.
 // ========================================================
 
-// --- Load credentials from .env file ---
-$env = [];
-if (file_exists(__DIR__ . '/.env')) {
-    foreach (file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
-            [$k, $v] = explode('=', $line, 2);
-            $env[trim($k)] = trim($v);
-        }
-    }
-}
-$db_host = $env['DB_HOST'] ?? 'localhost';
-$db_user = $env['DB_USER'] ?? 'root';
-$db_pass = $env['DB_PASS'] ?? '';
-$db_name = $env['DB_NAME'] ?? 'risegen';
+// --- Database Credentials (Variables for MySQLi Connection) ---
+$db_host = 'sql107.byethost7.com';    // Correct MySQL Host
+$db_user = 'b7_40130868';             // Your DB User
+$db_pass = '1cbjvqfy';                        // ⚠️ Replace with your actual DB password
+$db_name = 'b7_40130868_risegen';    // Your DB Name
 
 // --- Database Credentials (Constants for PDO/Other Scripts) ---
 // Defines constants (DB_HOST, etc.) to resolve the "Undefined constant" error in admin_dashboard.php

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced PDF MCQ Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 12px; padding: 25px; margin: 20px 0; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        .upload-area { border: 3px dashed #ddd; padding: 50px; text-align: center; border-radius: 12px; transition: all 0.3s; }
+        .upload-area.dragover { border-color: #007bff; background: #f8f9fa; transform: scale(1.02); }
+        .btn { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin: 8px; font-weight: 600; transition: all 0.3s; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .topic-selector { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin: 20px 0; }
+        .topic-card { border: 2px solid #e9ecef; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s; }
+        .topic-card:hover { border-color: #007bff; background: #f8f9fa; }
+        .topic-card.selected { border-color: #007bff; background: #e3f2fd; }
+        .level-selector { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
+        .level-btn { padding: 8px 16px; border: 2px solid #ddd; background: white; border-radius: 20px; cursor: pointer; transition: all 0.3s; }
+        .level-btn.selected { background: #007bff; color: white; border-color: #007bff; }
+        .question-counter { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+        .counter-btn { width: 30px; height: 30px; border: none; border-radius: 50%; background: #007bff; color: white; cursor: pointer; }
+        .progress-bar { width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin: 20px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #28a745, #20c997); transition: width 0.3s; }
+        .question { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+        .options { margin: 15px 0; }
+        .option { margin: 8px 0; padding: 12px; cursor: pointer; border-radius: 6px; border: 1px solid #ddd; transition: all 0.3s; }
+        .option:hover { background: #f8f9fa; border-color: #007bff; }
+        .option.selected { background: #e3f2fd; border-color: #007bff; }
+        .option.correct { background: #d4edda; border-color: #28a745; }
+        .option.incorrect { background: #f8d7da; border-color: #dc3545; }
+        .hidden { display: none; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .navbar { background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05)); backdrop-filter: blur(15px); padding: 15px 25px; margin-bottom: 25px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        .nav-left { display: flex; align-items: center; gap: 20px; }
+        .nav-right { display: flex; align-items: center; gap: 15px; }
+        .nav-brand { color: white; font-size: 1.2em; font-weight: bold; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .nav-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 10px 18px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s; font-weight: 500; }
+        .nav-btn:hover { background: rgba(255,255,255,0.35); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .nav-btn.primary { background: linear-gradient(135deg, #007bff, #0056b3); border-color: #007bff; }
+        .nav-btn.primary:hover { background: linear-gradient(135deg, #0056b3, #004085); }
+        .nav-menu { display: flex; gap: 10px; }
+        @media (max-width: 768px) { .navbar { flex-direction: column; gap: 15px; } .nav-left, .nav-right { width: 100%; justify-content: center; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="nav-left">
+                <a href="welcome.php" class="nav-brand">🎓 MCQ Generator</a>
+            </div>
+            <div class="nav-right">
+                <div class="nav-menu">
+                    <a href="welcome.php" class="nav-btn">🏠 Dashboard</a>
+                    <a href="#" class="nav-btn" onclick="resetApp()">🔄 New Test</a>
+                    <a href="#" class="nav-btn" onclick="showHelp()">❓ Help</a>
+                </div>
+            </div>
+        </nav>
+        <h1 style="text-align: center; color: white; margin-bottom: 30px; font-size: 2.5em;">🎓 Advanced MCQ Generator</h1>
+        
+        <!-- Upload Section -->
+        <div class="card" id="uploadSection">
+            <h2>📄 Upload PDF Document</h2>
+            <div class="upload-area" id="uploadArea">
+                <div style="font-size: 48px; margin-bottom: 20px;">📁</div>
+                <p>Drag and drop your PDF here or click to select</p>
+                <p style="color: #666; margin-top: 10px;">Supports PDFs up to 100+ pages</p>
+                <input type="file" id="pdfInput" accept=".pdf" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('pdfInput').click()">Choose PDF File</button>
+            </div>
+            <div id="fileName" style="margin-top: 15px; font-weight: bold; color: #007bff;"></div>
+            <div id="pdfStats" class="hidden" style="margin-top: 15px; color: #666;"></div>
+            <button class="btn btn-success" id="analyzeBtn" onclick="analyzePDF()" disabled>🔍 Analyze PDF</button>
+        </div>
+
+        <!-- Loading -->
+        <div class="card hidden" id="loadingSection">
+            <div class="loading-spinner"></div>
+            <p style="text-align: center;">Analyzing PDF and extracting topics...</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- Topic Selection -->
+        <div class="card hidden" id="topicSection">
+            <h2>📚 Select Topics & Configure Test</h2>
+            <div id="topicSelector" class="topic-selector"></div>
+            
+            <h3 style="margin-top: 30px;">🎯 Difficulty Level</h3>
+            <div class="level-selector">
+                <div class="level-btn" data-level="easy" onclick="selectLevel('easy')">🟢 Easy</div>
+                <div class="level-btn selected" data-level="medium" onclick="selectLevel('medium')">🟡 Medium</div>
+                <div class="level-btn" data-level="hard" onclick="selectLevel('hard')">🔴 Hard</div>
+                <div class="level-btn" data-level="mixed" onclick="selectLevel('mixed')">🌈 Mixed</div>
+            </div>
+
+            <h3 style="margin-top: 20px;">📊 Total Questions</h3>
+            <div class="question-counter">
+                <button class="counter-btn" onclick="changeQuestionCount(-10)">-10</button>
+                <button class="counter-btn" onclick="changeQuestionCount(-5)">-5</button>
+                <span id="questionCount" style="font-size: 18px; font-weight: bold; margin: 0 15px;">20</span>
+                <button class="counter-btn" onclick="changeQuestionCount(5)">+5</button>
+                <button class="counter-btn" onclick="changeQuestionCount(10)">+10</button>
+            </div>
+
+            <button class="btn btn-success" onclick="generateCustomMCQs()">🚀 Generate MCQs</button>
+        </div>
+
+        <!-- Test Options -->
+        <div class="card hidden" id="optionsSection">
+            <h2>🎮 Test Mode Selection</h2>
+            <div class="stats" id="generatedStats"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="startTest(false)">📝 Take Test (No Answers)</button>
+                <button class="btn btn-info" onclick="startTest(true)">📖 Study Mode (With Answers)</button>
+                <button class="btn btn-warning" onclick="showTopicBreakdown()">📊 Topic Breakdown</button>
+            </div>
+        </div>
+
+        <!-- MCQ Test -->
+        <div class="card hidden" id="testSection">
+            <div id="testHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="testTitle">📝 MCQ Test</h2>
+                <div id="testProgress" style="color: #666;"></div>
+            </div>
+            <div id="mcqContainer"></div>
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-success hidden" id="submitBtn" onclick="submitTest()">✅ Submit Test</button>
+                <button class="btn btn-primary" onclick="resetApp()">🔄 New Test</button>
+            </div>
+            <div id="scoreSection" class="hidden" style="text-align: center; margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        let pdfFile = null;
+        let pdfText = '';
+        let topics = [];
+        let selectedTopics = [];
+        let selectedLevel = 'medium';
+        let questionCount = 20;
+
+        // Help function
+        function showHelp() {
+            alert('🎓 Advanced MCQ Generator Help\n\n1. Upload PDF: Drag & drop or select PDF file\n2. Topic Analysis: System detects topics automatically\n3. Configure: Select topics, difficulty, and question count\n4. Generate: Create MCQs based on your settings\n5. Test Modes: Study mode (with answers) or Test mode\n6. Results: View detailed performance analytics');
+        } 20;
+        let mcqData = [];
+        let userAnswers = {};
+        let showAnswers = false;
+
+        // PDF Upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const pdfInput = document.getElementById('pdfInput');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files[0] && files[0].type === 'application/pdf') {
+                handlePDFUpload(files[0]);
+            }
+        });
+
+        pdfInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                handlePDFUpload(e.target.files[0]);
+            }
+        });
+
+        function handlePDFUpload(file) {
+            pdfFile = file;
+            document.getElementById('fileName').textContent = `📄 ${file.name}`;
+            document.getElementById('pdfStats').textContent = `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+            document.getElementById('pdfStats').classList.remove('hidden');
+            document.getElementById('analyzeBtn').disabled = false;
+        }
+
+        async function analyzePDF() {
+            if (!pdfFile) return;
+
+            document.getElementById('uploadSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.remove('hidden');
+
+            try {
+                pdfText = await extractTextFromPDF(pdfFile);
+                topics = await extractTopics(pdfText);
+                
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('topicSection').classList.remove('hidden');
+                displayTopics();
+            } catch (error) {
+                alert('Error analyzing PDF: ' + error.message);
+                resetApp();
+            }
+        }
+
+        async function extractTextFromPDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            let text = '';
+            let progress = 0;
+            
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                text += textContent.items.map(item => item.str).join(' ') + '\n\n';
+                
+                progress = (i / pdf.numPages) * 100;
+                document.getElementById('progressFill').style.width = progress + '%';
+            }
+            
+            return text;
+        }
+
+        async function extractTopics(text) {
+            const sections = text.split(/\n\s*\n/).filter(s => s.trim().length > 100);
+            const topicMap = new Map();
+            
+            // Enhanced topic detection
+            const keywords = {
+                'Technology': ['software', 'computer', 'digital', 'algorithm', 'programming', 'system', 'network', 'data'],
+                'Science': ['research', 'experiment', 'hypothesis', 'theory', 'analysis', 'method', 'study', 'scientific'],
+                'Business': ['market', 'company', 'revenue', 'profit', 'strategy', 'management', 'customer', 'business'],
+                'Education': ['learning', 'student', 'education', 'teaching', 'knowledge', 'skill', 'training', 'academic'],
+                'Health': ['medical', 'health', 'patient', 'treatment', 'disease', 'therapy', 'clinical', 'medicine'],
+                'Finance': ['financial', 'money', 'investment', 'bank', 'economic', 'cost', 'budget', 'finance'],
+                'Engineering': ['design', 'construction', 'engineering', 'technical', 'mechanical', 'electrical', 'civil'],
+                'Mathematics': ['equation', 'formula', 'calculation', 'mathematical', 'number', 'statistics', 'probability']
+            };
+
+            // Analyze text for topics
+            Object.entries(keywords).forEach(([topic, words]) => {
+                let score = 0;
+                const lowerText = text.toLowerCase();
+                words.forEach(word => {
+                    const matches = (lowerText.match(new RegExp(word, 'g')) || []).length;
+                    score += matches;
+                });
+                
+                if (score > 5) {
+                    topicMap.set(topic, {
+                        name: topic,
+                        score: score,
+                        sections: sections.filter(s => 
+                            words.some(w => s.toLowerCase().includes(w))
+                        ).slice(0, Math.min(10, Math.ceil(score / 3)))
+                    });
+                }
+            });
+
+            // Add general topics if no specific ones found
+            if (topicMap.size === 0) {
+                const generalSections = sections.slice(0, 8);
+                topicMap.set('General Content', {
+                    name: 'General Content',
+                    score: generalSections.length,
+                    sections: generalSections
+                });
+            }
+
+            return Array.from(topicMap.values()).sort((a, b) => b.score - a.score);
+        }
+
+        function displayTopics() {
+            const container = document.getElementById('topicSelector');
+            container.innerHTML = '';
+
+            topics.forEach((topic, index) => {
+                const topicCard = document.createElement('div');
+                topicCard.className = 'topic-card';
+                if (index < 3) {
+                    topicCard.classList.add('selected');
+                    selectedTopics.push(topic.name);
+                }
+                
+                topicCard.innerHTML = `
+                    <h4>${topic.name}</h4>
+                    <p>Content sections: ${topic.sections.length}</p>
+                    <p>Relevance score: ${topic.score}</p>
+                `;
+                
+                topicCard.onclick = () => toggleTopic(topic.name, topicCard);
+                container.appendChild(topicCard);
+            });
+        }
+
+        function toggleTopic(topicName, element) {
+            if (selectedTopics.includes(topicName)) {
+                selectedTopics = selectedTopics.filter(t => t !== topicName);
+                element.classList.remove('selected');
+            } else {
+                selectedTopics.push(topicName);
+                element.classList.add('selected');
+            }
+        }
+
+        function selectLevel(level) {
+            selectedLevel = level;
+            document.querySelectorAll('.level-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector(`[data-level="${level}"]`).classList.add('selected');
+        }
+
+        function changeQuestionCount(delta) {
+            questionCount = Math.max(5, Math.min(100, questionCount + delta));
+            document.getElementById('questionCount').textContent = questionCount;
+        }
+
+        async function generateCustomMCQs() {
+            if (selectedTopics.length === 0) {
+                alert('Please select at least one topic');
+                return;
+            }
+
+            document.getElementById('topicSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.remove('hidden');
+            document.querySelector('#loadingSection p').textContent = 'Generating MCQs...';
+
+            try {
+                mcqData = await generateAdvancedMCQs();
+                
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('optionsSection').classList.remove('hidden');
+                displayGeneratedStats();
+            } catch (error) {
+                alert('Error generating MCQs: ' + error.message);
+                resetApp();
+            }
+        }
+
+        async function generateAdvancedMCQs() {
+            const questionsPerTopic = Math.ceil(questionCount / selectedTopics.length);
+            const allMCQs = [];
+
+            for (const topicName of selectedTopics) {
+                const topic = topics.find(t => t.name === topicName);
+                const topicMCQs = generateTopicMCQs(topic, questionsPerTopic);
+                allMCQs.push(...topicMCQs);
+            }
+
+            return allMCQs.slice(0, questionCount).map((mcq, index) => ({
+                ...mcq,
+                id: index + 1,
+                difficulty: selectedLevel === 'mixed' ? 
+                    ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)] : selectedLevel
+            }));
+        }
+
+        function generateTopicMCQs(topic, count) {
+            const mcqs = [];
+            const sentences = topic.sections.join(' ').split(/[.!?]+/).filter(s => s.trim().length > 30);
+
+            for (let i = 0; i < Math.min(count, sentences.length); i++) {
+                const sentence = sentences[i].trim();
+                const words = sentence.split(' ').filter(w => w.length > 4 && /^[a-zA-Z]+$/.test(w));
+                
+                if (words.length < 3) continue;
+
+                const keyWord = words[Math.floor(Math.random() * words.length)];
+                const questionText = sentence.replace(new RegExp(`\\b${keyWord}\\b`, 'i'), '______');
+
+                const distractors = generateSmartDistractors(keyWord, topic.sections.join(' '));
+                const options = [keyWord, ...distractors].sort(() => Math.random() - 0.5);
+
+                mcqs.push({
+                    question: questionText,
+                    options: options,
+                    correct: keyWord,
+                    topic: topic.name,
+                    type: 'fill-blank'
+                });
+            }
+
+            // Add comprehension questions
+            mcqs.push(...generateComprehensionQuestions(topic));
+
+            return mcqs;
+        }
+
+        function generateSmartDistractors(correct, context) {
+            const words = context.match(/\b[A-Za-z]{4,}\b/g) || [];
+            const candidates = [...new Set(words)]
+                .filter(w => w.toLowerCase() !== correct.toLowerCase() && w.length >= 4)
+                .sort(() => Math.random() - 0.5);
+
+            const fallbacks = ['system', 'process', 'method', 'analysis', 'research', 'development', 'management', 'technology'];
+            
+            return [...candidates.slice(0, 3), ...fallbacks].slice(0, 3);
+        }
+
+        function generateComprehensionQuestions(topic) {
+            const questions = [];
+            const content = topic.sections.join(' ').toLowerCase();
+
+            if (content.includes('advantage') || content.includes('benefit')) {
+                questions.push({
+                    question: `What is a key advantage mentioned in the ${topic.name} section?`,
+                    options: ['Efficiency', 'Cost reduction', 'Improved quality', 'All of the above'],
+                    correct: 'All of the above',
+                    topic: topic.name,
+                    type: 'comprehension'
+                });
+            }
+
+            return questions.slice(0, 2);
+        }
+
+        function displayGeneratedStats() {
+            const container = document.getElementById('generatedStats');
+            const topicCounts = {};
+            
+            mcqData.forEach(mcq => {
+                topicCounts[mcq.topic] = (topicCounts[mcq.topic] || 0) + 1;
+            });
+
+            container.innerHTML = Object.entries(topicCounts).map(([topic, count]) => `
+                <div class="stat-card">
+                    <h3>${count}</h3>
+                    <p>${topic}</p>
+                </div>
+            `).join('');
+        }
+
+        function startTest(withAnswers) {
+            showAnswers = withAnswers;
+            document.getElementById('optionsSection').classList.add('hidden');
+            document.getElementById('testSection').classList.remove('hidden');
+            document.getElementById('testTitle').textContent = withAnswers ? '📖 Study Mode' : '📝 Test Mode';
+            displayMCQs();
+        }
+
+        function displayMCQs() {
+            const container = document.getElementById('mcqContainer');
+            container.innerHTML = '';
+
+            mcqData.forEach((mcq, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3>Question ${index + 1}</h3>
+                        <span style="background: #007bff; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">
+                            ${mcq.topic} • ${mcq.difficulty}
+                        </span>
+                    </div>
+                    <p style="margin-bottom: 15px;">${mcq.question}</p>
+                    <div class="options">
+                        ${mcq.options.map((option, optIndex) => `
+                            <div class="option" onclick="selectOption(${index}, '${option}', this)">
+                                ${String.fromCharCode(65 + optIndex)}. ${option}
+                                ${showAnswers && option === mcq.correct ? ' ✅' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(questionDiv);
+            });
+
+            document.getElementById('testProgress').textContent = `${mcqData.length} Questions`;
+            if (!showAnswers) {
+                document.getElementById('submitBtn').classList.remove('hidden');
+            }
+        }
+
+        function selectOption(questionIndex, option, element) {
+            if (showAnswers) return;
+
+            const options = element.parentNode.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            userAnswers[questionIndex] = option;
+        }
+
+        function submitTest() {
+            let score = 0;
+            const topicScores = {};
+
+            mcqData.forEach((mcq, index) => {
+                const questionDiv = document.querySelectorAll('.question')[index];
+                const options = questionDiv.querySelectorAll('.option');
+                
+                options.forEach(option => {
+                    const optionText = option.textContent.substring(3).trim();
+                    if (optionText === mcq.correct) {
+                        option.classList.add('correct');
+                    } else if (userAnswers[index] === optionText) {
+                        option.classList.add('incorrect');
+                    }
+                });
+
+                if (userAnswers[index] === mcq.correct) {
+                    score++;
+                    topicScores[mcq.topic] = (topicScores[mcq.topic] || 0) + 1;
+                }
+            });
+
+            document.getElementById('submitBtn').classList.add('hidden');
+            const percentage = Math.round((score / mcqData.length) * 100);
+            
+            document.getElementById('scoreSection').innerHTML = `
+                <h2>🎯 Test Results</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>${score}/${mcqData.length}</h3>
+                        <p>Correct Answers</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${percentage}%</h3>
+                        <p>Score</p>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <h3>Topic-wise Performance:</h3>
+                    ${Object.entries(topicScores).map(([topic, correct]) => {
+                        const total = mcqData.filter(q => q.topic === topic).length;
+                        return `<p>${topic}: ${correct}/${total} (${Math.round(correct/total*100)}%)</p>`;
+                    }).join('')}
+                </div>
+            `;
+            document.getElementById('scoreSection').classList.remove('hidden');
+        }
+
+        function showTopicBreakdown() {
+            const breakdown = {};
+            mcqData.forEach(mcq => {
+                breakdown[mcq.topic] = (breakdown[mcq.topic] || 0) + 1;
+            });
+
+            alert('Topic Breakdown:\n' + 
+                Object.entries(breakdown)
+                    .map(([topic, count]) => `${topic}: ${count} questions`)
+                    .join('\n')
+            );
+        }
+
+        function resetApp() {
+            pdfFile = null;
+            pdfText = '';
+            topics = [];
+            selectedTopics = [];
+            mcqData = [];
+            userAnswers = {};
+            questionCount = 20;
+            selectedLevel = 'medium';
+            
+            document.getElementById('uploadSection').classList.remove('hidden');
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('topicSection').classList.add('hidden');
+            document.getElementById('optionsSection').classList.add('hidden');
+            document.getElementById('testSection').classList.add('hidden');
+            
+            document.getElementById('fileName').textContent = '';
+            document.getElementById('pdfStats').classList.add('hidden');
+            document.getElementById('analyzeBtn').disabled = true;
+            pdfInput.value = '';
+        }
+    </script>
+</body>
+</html>

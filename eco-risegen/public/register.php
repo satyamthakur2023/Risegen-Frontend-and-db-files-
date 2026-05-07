@@ -9,11 +9,6 @@ if (!isset($_SESSION)) {
     @session_start();
 }
 
-// CSRF token
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
 require_once "config.php";
 
 // Redirect if already logged in
@@ -32,9 +27,6 @@ try {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
-        $error = "Invalid request. Please try again.";
-    } else {
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -71,7 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 
                 if ($success) {
-                    session_regenerate_id(true);
                     $_SESSION['success_message'] = "Account created! Please log in.";
                     header("Location: login.php");
                     exit();
@@ -83,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // This will show exactly what's wrong with the SQL if it fails
             $error = "Database Error: " . $e->getMessage();
         }
-        } // end CSRF check
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -122,7 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST" action="" class="space-y-4">
-            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <div class="relative">
                 <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                 <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username ?? ''); ?>" required 
