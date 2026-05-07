@@ -1,12 +1,20 @@
 <?php
-// --- Database Credentials (Variables for MySQLi Connection) ---
-$db_host = 'sql107.byethost7.com';
-$db_user = 'b7_40130868';
-$db_pass = '1cbjvqfy';
-$db_name = 'b7_40130868_risegen';
+// Load from root .env
+$env = [];
+$envFile = __DIR__ . '/../.env';
+if (file_exists($envFile)) {
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
+            [$k, $v] = explode('=', $line, 2);
+            $env[trim($k)] = trim($v);
+        }
+    }
+}
+$db_host = $env['DB_HOST'] ?? 'localhost';
+$db_user = $env['DB_USER'] ?? 'root';
+$db_pass = $env['DB_PASS'] ?? '';
+$db_name = $env['DB_NAME'] ?? 'risegen';
 
-// --- Database Credentials (Constants for PDO/Other Scripts) ---
-// Defines constants (DB_HOST, etc.) to resolve the "Undefined constant" error in admin_dashboard.php
 if (!defined('DB_HOST')) define('DB_HOST', $db_host);
 if (!defined('DB_USER')) define('DB_USER', $db_user);
 if (!defined('DB_PASS')) define('DB_PASS', $db_pass);

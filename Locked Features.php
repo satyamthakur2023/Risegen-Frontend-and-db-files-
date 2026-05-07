@@ -7,97 +7,66 @@
 // 1. Configuration & Session Management
 // --------------------------------------------------------
 session_start();
-
-// Security Headers
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
-// --- SIMULATED LOGIN/DB DATA START ---
-// Set 'premium' to 'free' to see locked state
-$_SESSION['student_id'] = 102;
-$_SESSION['access_level'] = 'premium'; // Change to 'free' to test locked features
-$_SESSION['username'] = "Maria Rodriguez";
-$student_name = $_SESSION['username'] . ($_SESSION['access_level'] === 'premium' ? " (Premium)" : " (Free Tier)");
-// --- SIMULATED LOGIN/DB DATA END ---
+if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 
-// Security check: If not logged in (Uncomment in production)
-if (!isset($_SESSION['student_id'])) {
-    // header('Location: login.php');
-    // exit;
-}
+require_once 'config.php';
+$pdo = connectDatabase();
+$user_id = $_SESSION['user_id'];
+$username = $_SESSION['username'] ?? 'User';
 
-// Function to check access level for gating
-function is_premium() {
-    return (isset($_SESSION['access_level']) && $_SESSION['access_level'] === 'premium');
-}
+$stmt = $pdo->prepare("SELECT credits, status FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch();
+$is_premium = ($user['status'] ?? '') === 'active' && ($user['credits'] ?? 0) > 0;
 
-// --------------------------------------------------------
-// 2. Advanced Data Simulation Layer
-// --------------------------------------------------------
-$app_version = "8.0.0";
-$username = htmlspecialchars($student_name);
-$user_id = $_SESSION['student_id'];
-$is_premium_user = is_premium();
-
-// Helper functions (initials, etc.)
+function is_premium() { global $is_premium; return $is_premium; }
 function get_initials(string $name): string {
     $parts = explode(' ', trim($name));
-    $initials = '';
-    if (count($parts) > 0) {
-        $initials .= strtoupper(substr($parts[0], 0, 1));
-        if (count($parts) > 1) {
-            $initials .= strtoupper(substr(end($parts), 0, 1));
-        }
-    }
-    return $initials;
+    $i = strtoupper(substr($parts[0], 0, 1));
+    if (count($parts) > 1) $i .= strtoupper(substr(end($parts), 0, 1));
+    return $i;
 }
+$initials = get_initials($username);
+$app_version = "8.0.0";
+$is_premium_user = is_premium();
+$premium_badge = $is_premium_user ? '<span class="ml-2 inline-flex items-center rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-medium text-white">PRO</span>' : '';
 
-// SIMULATE LAST LOGIN DATA - Integrated Security Check Data
-function get_last_login_details(): array {
-    // Mock data for the *previous* successful login
-    return [
-        'timestamp' => '2025-10-16 23:45:12', // Yesterday's date
-        'ip_address' => '103.45.18.22',
-        'location' => 'Greater Noida, India',
-        'device' => 'Windows 10 / Chrome',
-    ];
+// Real DB courses
+$courses_stmt = $pdo->prepare("
+    SELECT c.title as name, e.progress,
+           COALESCE(e.progress, 0) as progress
+    FROM enrollments e
+    JOIN courses c ON c.id = e.course_id
+    WHERE e.user_id = ? LIMIT 5
+");
+$courses_stmt->execute([$user_id]);
+$courses_data = $courses_stmt->fetchAll();
+foreach ($courses_data as &$c) {
+    $c['current_grade'] = $c['progress'] >= 90 ? 'A' : ($c['progress'] >= 75 ? 'B' : 'C');
+    $c['announcements'] = ['Keep up the great work!'];
+    $c['locked_feature'] = 'AI Topic Reviewer';
 }
+unset($c);
 
-$initials = get_initials($_SESSION['username']);
-$premium_badge = $is_premium_user ? '<span class="ml-2 inline-flex items-center rounded-full bg-secondary px-3 py-0.5 text-xs font-medium text-white shadow-sm">PRO</span>' : '';
-$last_login = get_last_login_details();
-
-// Simulated data structures (Courses)
-$courses_data = [
-    [
-        'id' => 1, 
-        'name' => 'Advanced Web Dev', 
-        'current_grade' => 'A-', 
-        'progress' => 85,
-        'announcements' => ['Project 3 due Friday.', 'Office hours canceled Tuesday.'],
-        'locked_feature' => 'Detailed Rubric Analysis'
-    ],
-    [
-        'id' => 2, 
-        'name' => 'Data Structures & Algo', 
-        'current_grade' => 'B', 
-        'progress' => 60,
-        'announcements' => ['Midterm results posted.'],
-        'locked_feature' => 'AI Topic Reviewer'
-    ],
+// Real last login
+$ll = $pdo->prepare("SELECT last_login_time, last_login_ip FROM users WHERE id = ?");
+$ll->execute([$user_id]);
+$ll_row = $ll->fetch();
+$last_login = [
+    'timestamp'  => $ll_row['last_login_time'] ?? date('Y-m-d H:i:s'),
+    'ip_address' => $ll_row['last_login_ip'] ?? 'N/A',
+    'location'   => 'N/A',
 ];
 
-// Simulated data structures (Gamification)
 $gamification_data = [
-    ['name' => 'Completed 5/10 Assignments', 'icon' => 'list-end', 'color' => 'text-primary'],
-    ['name' => 'Perfect Attendance', 'icon' => 'check-circle', 'color' => 'text-secondary'],
-    ['name' => '100 Study Hours Logged', 'icon' => 'clock', 'color' => 'text-yellow-500', 'premium_lock' => true],
+    ['name' => 'Account Active', 'icon' => 'check-circle', 'color' => 'text-secondary'],
+    ['name' => 'Exam Attempted', 'icon' => 'list-end', 'color' => 'text-primary'],
+    ['name' => 'Premium Features', 'icon' => 'clock', 'color' => 'text-yellow-500', 'premium_lock' => true],
 ];
-
-// --------------------------------------------------------
-// 3. HTML Presentation (View) - Tailwind
-// --------------------------------------------------------
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -183,21 +152,25 @@ $gamification_data = [
             </div>
 
            <nav class="space-y-2">
-            <a href="#" class="flex items-center px-4 py-3 rounded-xl active-link">
+            <a href="welcome.php" class="flex items-center px-4 py-3 rounded-xl active-link">
                 <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                 <span class="ml-4">Dashboard</span>
             </a>
-            <a href="#" class="flex items-center px-4 py-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-300">
+            <a href="course.php" class="flex items-center px-4 py-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-300">
                 <i data-lucide="book-open" class="w-5 h-5"></i>
                 <span class="ml-4">My Courses</span>
             </a>
-            <a href="#" class="flex items-center px-4 py-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-300">
+            <a href="notification.php" class="flex items-center px-4 py-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-300">
                 <i data-lucide="bell-dot" class="w-5 h-5"></i>
                 <span class="ml-4">Notifications</span>
             </a>
-            <a href="#" class="flex items-center px-4 py-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-300">
+            <a href="profile.php" class="flex items-center px-4 py-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-300">
                 <i data-lucide="shield-check" class="w-5 h-5"></i>
-                <span class="ml-4">Security & Profile</span>
+                <span class="ml-4">Profile</span>
+            </a>
+            <a href="credit.php" class="flex items-center px-4 py-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-300">
+                <i data-lucide="credit-card" class="w-5 h-5"></i>
+                <span class="ml-4">Buy Credits</span>
             </a>
         </nav>
         </div>

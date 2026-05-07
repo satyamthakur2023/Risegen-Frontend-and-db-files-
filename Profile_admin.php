@@ -7,28 +7,17 @@
 require_once 'config.php'; 
 
 session_start();
-// **SECURITY CHECK REMINDER**: 
-// For production, ensure user is authenticated and has admin privileges here.
-// Example: if (!isset($_SESSION['is_admin']) || $_SESSION['is_admin'] !== true) { header('Location: login.php'); exit; }
+if (!isset($_SESSION['admin_id'])) { header('Location: admin_login.php'); exit; }
 
-// --- Dynamic Variables ---
-// NOTE: For a real app, this ID MUST come from a secure GET parameter (e.g., ?id=)
-$user_id_to_update = 1; 
-$admin_name = "System Administrator"; // Should be pulled from session
+$user_id_to_update = intval($_GET['id'] ?? 0);
+if (!$user_id_to_update) { header('Location: user_management.php'); exit; }
+
+$admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $message = "";
 $db_error = false;
+$form_data = ['username'=>'','email'=>'','role'=>'student','status'=>'active','bio'=>''];
 
-// Initialize form data array with empty strings for fallback
-$form_data = [
-    'username' => '', 
-    'email' => '', 
-    'role' => 'user', 
-    'status' => 'inactive', 
-    'bio' => ''
-];
-
-// --- Database Connection ---
-$conn = @new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
+$conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
 
 if ($conn->connect_error) {
     $db_error = true;
@@ -96,8 +85,7 @@ if (!$db_error && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param($bind_types, ...$bind_params);
 
         if ($stmt->execute()) {
-            // SUCCESS: Redirect
-            header("Location: security_logs.php?action=user_updated&user_id=" . $user_id_to_update);
+            header("Location: user_management.php?updated=1");
             exit;
         } else {
             $message = "<div class='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg' role='alert'>❌ Error updating profile: " . htmlspecialchars($stmt->error) . "</div>";
