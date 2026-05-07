@@ -1,104 +1,143 @@
 # 🎓 Risegen — Learn, Earn, Repeat Platform
 
-> A full-stack ed-tech platform built with PHP, Python (Flask), MySQL, and Tailwind CSS.  
-> Risegen lets users learn skills, take AI-powered assessments, earn certificates, and access real job/gig listings.
+> A full-stack ed-tech platform built with **PHP 8**, **Python (Flask)**, **MySQL**, and **Tailwind CSS**.
+> Users learn skills, take AI-powered assessments, earn verified certificates, and access real job/gig listings.
+
+[![PHP](https://img.shields.io/badge/PHP-8%2B-777BB4?logo=php)](https://php.net)
+[![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?logo=python)](https://python.org)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)](https://mysql.com)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?logo=tailwind-css)](https://tailwindcss.com)
 
 ---
 
-## 🚀 What We Built
+## 🚀 Quick Start
 
-### 🌐 Public Frontend
-| File | What it does |
-|------|-------------|
-| `index.php` | Landing page — hero section, Knowledge Rush quiz game, pricing, testimonials, live gig listings |
-| `welcome.php` / `welcome-1.php` | Post-login welcome screens |
-| `login.php` | User login with PDO, session management, IP tracking |
-| `User_Registration.php` | User signup with password hashing, validation, and redirect |
-| `logout.php` | Destroys session and redirects to login |
+```bash
+# 1. Place files in XAMPP htdocs
+# 2. Import database_setup.sql into MySQL
+# 3. Edit .env with your DB credentials
+# 4. Visit http://localhost/risegen/index.php
+# 5. (Optional) Run Python MCQ server: double-click run_mcq.bat
+```
 
----
-
-### 📊 User Dashboard
-| File | What it does |
-|------|-------------|
-| `dashboard.php` | Main user dashboard — shows courses, tests, jobs, blogs overview cards |
-| `profile.php` | View user profile |
-| `Profile_update.php` | Update profile details |
-| `user_details_update.php` | Backend handler for profile field updates |
-| `notification.php` | User notifications panel |
-| `credit.php` | Shows user credit balance |
-| `get_credits.php` | API endpoint to fetch credits |
-| `enrolled.php` | Shows courses the user is enrolled in |
-| `save_jobs.php` | Saves job listings to user's saved list |
+> See **[SETUP.md](SETUP.md)** for the full step-by-step installation guide.
 
 ---
 
-### 🎮 Assessment & Gamification
-| File | What it does |
+## 🔑 Default Admin Login
+
+| Field | Value |
+|-------|-------|
+| URL | `/admin_login.php` |
+| Email | `admin@risegen.com` |
+| Password | `password` |
+
+> ⚠️ Change this immediately after first login.
+
+---
+
+## 🌐 Public Pages (No login required)
+
+| File | Description |
 |------|-------------|
-| `gamebox.php` | **Entrance Exam Portal** — timed MCQ test fetched from DB, anti-cheat tab detection, score calculation |
-| `cert.php` | **Certificate Generator** — auto-generates a printable PDF certificate for users who score ≥70% |
+| `index.php` | Landing page — hero, Knowledge Rush quiz game, pricing, testimonials, live gig listings |
+| `login.php` | User login — PDO, CSRF protection, session regeneration, IP tracking |
+| `User_Registration.php` | User signup — password hashing, CSRF, validation |
+| `forgot_password.php` | Password reset — generates secure token stored in DB |
+| `contact.php` | Contact form — CSRF protected, saves to `contact_messages` table |
+| `logout.php` | Destroys session, clears cookie, prevents back-button access |
+
+---
+
+## 📊 User Dashboard (Login required)
+
+| File | Description |
+|------|-------------|
+| `welcome.php` | Main dashboard — 30-day study chart (Chart.js), enrolled courses, upcoming events |
+| `dashboard.php` | Overview — live DB counts for courses, tests, jobs, blogs |
+| `profile.php` | View & update username, email, password |
+| `user_details_update.php` | Backend handler for profile updates |
+| `notification.php` | Security panel — real last login time + IP from DB |
+| `credit.php` | Credit balance + 3 purchase packs (Starter/Standard/Premium) |
+| `get_credits.php` | JSON API — returns user credit balance |
+| `enrolled.php` | My enrolled courses + UPI payment slip upload |
+| `save_jobs.php` | Save job to user's saved list (session auth + PDO) |
+| `leaderboard.php` | Global rankings from `test_results` table, highlights your rank |
+| `search.php` | Search across courses and blogs from DB |
+| `Locked Features.php` | Premium feature gate — real DB credit check, course progress |
+
+---
+
+## 🎮 Assessment & Gamification
+
+| File | Description |
+|------|-------------|
+| `gamebox.php` | Entrance Exam Portal — timed MCQ, anti-cheat tab detection, score calculation |
+| `cert.php` | Certificate Generator — printable PDF, gated at ≥70% score |
+| `api.php` | MCQ questions API — prepared statements, anti-repeat logic, score + cert saving |
 | `game.html` | Standalone HTML quiz game |
-| `api.php` | Serves MCQ questions from DB and saves scores/cert IDs |
 
 ---
 
-### 🤖 AI-Powered MCQ Generator (Python/Flask)
-| File | What it does |
+## 🤖 AI-Powered MCQ Generator (Python/Flask)
+
+| File | Description |
 |------|-------------|
-| `advanced_mcq_server_v2.py` | **Flask API server** — uploads PDFs, extracts text, runs TF-IDF summarization, detects topics, generates 4 types of MCQs (fill-blank, true/false, definition, comprehension) |
-| `db_connection.py` | In-memory database class for MCQ sessions, answers, and scoring |
-| `New.py` | Additional Python utility script |
-| `advanced-mcq-generator.html` | Frontend UI for the MCQ generator |
+| `advanced_mcq_server_v2.py` | Flask server — PDF upload, TF-IDF summarization, topic detection, 4 MCQ types, **MySQL persistence** |
+| `db_connection.py` | Legacy in-memory DB class (superseded by MySQL) |
+| `advanced-mcq-generator.html` | MCQ generator frontend UI |
 | `advanced-mcq-generator-v2.html` | V2 frontend with improved UX |
-| `fixed_mcq_generator.html` | Stable/fixed version of MCQ generator UI |
-| `ai_assessment_fixed.php` | PHP wrapper for AI assessment integration |
+| `fixed_mcq_generator.html` | Stable MCQ generator UI |
+| `ai_assessment_fixed.php` | PHP AI assessment — topic-based question generation, saves results to DB |
 | `ai_assessment_rag_frontend.html` | RAG-based AI assessment frontend |
-| `run_app.bat` | Windows batch script to start the Flask server |
-| `run_mcq.bat` | Windows batch script to run the MCQ server |
+| `run_mcq.bat` | Windows launcher — installs all pip packages + starts Flask server |
 
 ---
 
-### 🔧 Backend & API
-| File | What it does |
+## 🔧 Backend & API
+
+| File | Description |
 |------|-------------|
-| `config.php` | **Central DB config** — dual MySQLi + PDO connection, constants, error handling |
-| `auth.php` | Session guard — redirects unauthenticated users to login |
-| `master_injector.php` | Shared PHP includes injector |
-| `realtime_api.php` | REST API — handles PDF uploads, answer saving, topic/question fetching, live score |
-| `realtime_client.js` | JS client for real-time API communication |
-| `fetch_blogs.php` | Fetches blog posts from DB |
-| `blogs.php` | Blog listing page |
-| `course.php` | Course detail page |
-| `instructor.php` | Instructor profile/listing page |
+| `config.php` | Central DB config — reads from `.env`, dual MySQLi + PDO |
+| `auth.php` | Session guard — redirects unauthenticated users |
+| `realtime_api.php` | REST API — session auth, PDF uploads, answer saving, live score |
+| `realtime_client.js` | JS client for real-time API |
+| `fetch_blogs.php` | Blog JSON API — search, category filter, pagination |
+| `blogs.php` | Blog listing — infinite scroll, category pills, reading mode |
+| `course.php` | Course catalog — filter, sort, modal, enroll button |
+| `instructor.php` | Instructor profile page |
+| `master_injector.php` | Blog seeder — injects 110 sample blog posts |
 
 ---
 
-### 👑 Admin Panel
-| File | What it does |
+## 👑 Admin Panel (Admin login required)
+
+| File | Description |
 |------|-------------|
-| `admin_login.php` | Admin-only login page |
+| `admin_login.php` | Admin login — PDO, password_verify, session |
 | `admin_logout.php` | Admin session destroy |
-| `admin_dashboard.php` | **Advanced admin dashboard** — total users, 7-day active users, engagement trend chart (Chart.js), recent signups |
+| `admin.php` | Entry point — redirects to login or dashboard |
+| `admin_dashboard.php` | Stats — total users, 7-day active, Chart.js engagement trend, recent signups |
 | `admin_register.php` | Register new admin accounts |
-| `admin_creation.php` | Admin account creation handler |
-| `admin.php` | Admin panel entry point |
-| `Profile_admin.php` | Admin profile management |
-| `user_management.php` | View and manage all users |
-| `Locked Features.php` | Premium/locked feature gate |
+| `admin_creation.php` | Admin creation handler |
+| `user_management.php` | View all users with nav to blog/course managers |
+| `Profile_admin.php` | Edit any user — dynamic `?id=`, real session auth, redirects to user_management |
+| `admin_blog_manager.php` | Full CRUD for blogs — create, edit, delete |
+| `admin_course_manager.php` | Full CRUD for courses — create, edit, delete |
 
 ---
 
-### 🗄️ Database
-| File | What it does |
+## 🗄️ Database
+
+| File | Description |
 |------|-------------|
-| `database_setup.sql` | Main schema — users, courses, enrollments, certificates, credits, jobs |
-| `api/database.sql` | API-specific schema — pdf_uploads, topics, questions, sessions, answers |
-| `api/config.php` | API folder DB config |
+| `database_setup.sql` | **Master schema** — 16 tables + seed data (admin, courses, MCQ questions) |
+| `api/database.sql` | Legacy partial schema (superseded by master) |
+| `api/config.php` | API subfolder DB config — reads from `.env` |
 | `api/check-session.php` | Session validation endpoint |
-| `api/courses.php` | Courses API endpoint |
-| `api/login.php` | API login handler |
-| `api/logout.php` | API logout handler |
+| `api/courses.php` | Courses REST API — GET all, POST create |
+| `api/login.php` | API login + register endpoint |
+| `api/logout.php` | API logout endpoint |
 
 ---
 
@@ -106,51 +145,96 @@
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | HTML5, Tailwind CSS, Font Awesome, Vanilla JS |
-| Backend | PHP 8+ (PDO + MySQLi), Sessions |
-| AI/ML Server | Python 3, Flask, NLTK, PyPDF2, TF-IDF |
-| Database | MySQL (hosted on ByetHost) |
+| Frontend | HTML5, Tailwind CSS, Font Awesome, Lucide Icons, Vanilla JS |
+| Backend | PHP 8+ (PDO + MySQLi), Sessions, CSRF Tokens |
+| AI/ML Server | Python 3, Flask, NLTK, PyPDF2, TF-IDF, mysql-connector-python |
+| Database | MySQL 8 — 16 tables, seeded data |
 | Charts | Chart.js |
+| Security | CSRF tokens, session regeneration, prepared statements, `.env` credentials |
 | Fonts | Plus Jakarta Sans, Space Grotesk |
 
 ---
 
-## ⚙️ How to Run
+## 🔗 How Everything Connects
 
-### PHP App (XAMPP / ByetHost)
-1. Place all files in your `htdocs` or hosting root
-2. Import `database_setup.sql` into your MySQL database
-3. Update credentials in `config.php`:
-```php
-$db_host = 'your_host';
-$db_user = 'your_user';
-$db_pass = 'your_password';
-$db_name = 'your_db_name';
 ```
-4. Visit `index.php` in your browser
-
-### Python MCQ Server
-```bash
-pip install flask flask-cors PyPDF2 nltk
-python advanced_mcq_server_v2.py
-# Server runs on http://localhost:5002
+Browser
+  │
+  ├── index.php ──────────────────────────────► Landing page
+  │     ├── login.php ──────────────────────────► welcome.php (dashboard)
+  │     ├── User_Registration.php ──────────────► login.php
+  │     ├── forgot_password.php ────────────────► users.reset_token
+  │     └── contact.php ────────────────────────► contact_messages table
+  │
+  ├── welcome.php / dashboard.php
+  │     ├── course.php ─────────────────────────► enrolled.php → course_enrollments
+  │     ├── gamebox.php ────────────────────────► api.php → test_results → cert.php
+  │     ├── blogs.php ──────────────────────────► fetch_blogs.php → blogs table
+  │     ├── leaderboard.php ─────────────────────► test_results table
+  │     ├── search.php ──────────────────────────► courses + blogs tables
+  │     ├── ai_assessment_fixed.php ─────────────► assessment_results table
+  │     ├── credit.php ──────────────────────────► users.credits
+  │     ├── profile.php ─────────────────────────► user_details_update.php → users
+  │     ├── notification.php ─────────────────────► users.last_login_time
+  │     └── logout.php
+  │
+  ├── admin_login.php ─────────────────────────► admin_dashboard.php
+  │     ├── user_management.php ────────────────► Profile_admin.php → users
+  │     ├── admin_blog_manager.php ─────────────► blogs table
+  │     └── admin_course_manager.php ───────────► courses table
+  │
+  └── Python Server (localhost:5002)
+        ├── /api/upload ────────────────────────► pdf_uploads + topics tables
+        ├── /api/generate ──────────────────────► questions table
+        ├── /api/session ───────────────────────► test_sessions table
+        └── /api/answer ────────────────────────► user_answers table
 ```
-Or just double-click `run_mcq.bat` on Windows.
 
 ---
 
 ## 🔑 Key Features
 
-- ✅ User registration, login, session management
+- ✅ User registration, login, CSRF protection, session regeneration
 - ✅ Timed entrance exam with anti-cheat tab detection
 - ✅ Auto-generated printable certificates (≥70% pass threshold)
-- ✅ AI MCQ generator from PDF uploads using TF-IDF + NLTK
-- ✅ Admin dashboard with live engagement charts
-- ✅ Credit/payment system
-- ✅ Job listings and gig access
-- ✅ Blog system
-- ✅ Course enrollment tracking
-- ✅ Real-time scoring API
+- ✅ AI MCQ generator from PDF uploads — TF-IDF + NLTK + MySQL persistence
+- ✅ AI topic-based assessment with DB result saving
+- ✅ Admin dashboard with live Chart.js engagement charts
+- ✅ Full CRUD for blogs and courses from admin panel
+- ✅ Credit/payment system with 3 purchase tiers
+- ✅ Global leaderboard from real test results
+- ✅ Global search across courses and blogs
+- ✅ Job listings via live Render API
+- ✅ Course enrollment with UPI payment slip upload
+- ✅ Password reset with secure token
+- ✅ Contact form with DB storage
+- ✅ Premium feature gating based on credits
+- ✅ Credentials secured via `.env` file (not hardcoded)
+- ✅ All SQL queries use prepared statements (no injection)
+
+---
+
+## ⚙️ How to Run
+
+### PHP App (XAMPP)
+1. Copy files to `C:\xampp\htdocs\risegen\`
+2. Import `database_setup.sql` into phpMyAdmin
+3. Edit `.env`:
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=
+DB_NAME=risegen
+```
+4. Visit `http://localhost/risegen/index.php`
+
+### Python MCQ Server
+```bash
+pip install flask flask-cors PyPDF2 nltk mysql-connector-python
+python advanced_mcq_server_v2.py
+# Runs on http://localhost:5002
+```
+Or double-click `run_mcq.bat` on Windows.
 
 ---
 
@@ -158,15 +242,47 @@ Or just double-click `run_mcq.bat` on Windows.
 
 ```
 risegen/
-├── public/          → Landing, login, register, dashboard
-├── backend/
-│   ├── auth/        → auth.php, master_injector.php
-│   ├── admin/       → admin panel files
-│   ├── user/        → user management files
-│   └── api/         → REST API endpoints
-├── database/        → SQL schema files
-├── python/          → Flask MCQ server
-└── assets/          → Images and static files
+├── index.php              → Landing page
+├── login.php              → User auth
+├── User_Registration.php  → Signup
+├── welcome.php            → Main dashboard
+├── dashboard.php          → Overview dashboard
+├── gamebox.php            → Exam portal
+├── cert.php               → Certificate
+├── blogs.php              → Blog listing
+├── course.php             → Course catalog
+├── enrolled.php           → My courses
+├── leaderboard.php        → Rankings
+├── search.php             → Global search
+├── credit.php             → Buy credits
+├── profile.php            → User profile
+├── notification.php       → Security info
+├── contact.php            → Contact form
+├── forgot_password.php    → Password reset
+├── ai_assessment_fixed.php→ AI assessment
+├── Locked Features.php    → Premium gate
+├── admin_login.php        → Admin auth
+├── admin_dashboard.php    → Admin stats
+├── admin_blog_manager.php → Blog CRUD
+├── admin_course_manager.php→ Course CRUD
+├── user_management.php    → User list
+├── Profile_admin.php      → Edit user
+├── config.php             → DB config
+├── auth.php               → Session guard
+├── api.php                → MCQ API
+├── realtime_api.php       → REST API
+├── fetch_blogs.php        → Blog API
+├── advanced_mcq_server_v2.py → Flask AI server
+├── database_setup.sql     → Full DB schema
+├── .env                   → DB credentials (not committed)
+├── .gitignore             → Ignores .env
+├── SETUP.md               → Full setup guide
+└── api/                   → REST API subfolder
+    ├── config.php
+    ├── login.php
+    ├── logout.php
+    ├── courses.php
+    └── check-session.php
 ```
 
 ---
@@ -175,6 +291,20 @@ risegen/
 
 - PHP App: [ByetHost](https://byethost7.com)
 - Jobs API: [https://risegen.onrender.com](https://risegen.onrender.com)
+- GitHub: [https://github.com/satyamthakur2023/Risegen-Frontend-and-db-files-](https://github.com/satyamthakur2023/Risegen-Frontend-and-db-files-)
+
+---
+
+## ⚠️ Common Issues
+
+| Problem | Fix |
+|---------|-----|
+| Blank page | Enable `display_errors` in `php.ini` |
+| DB connection failed | Check `.env` credentials match phpMyAdmin |
+| Certificate not showing | Score must be ≥70% in URL |
+| Python server won't start | Run `pip install flask flask-cors PyPDF2 nltk mysql-connector-python` |
+| Admin login fails | Re-import `database_setup.sql` |
+| Credits not updating | Check `users` table has `credits` column |
 
 ---
 
